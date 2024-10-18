@@ -167,6 +167,8 @@ namespace UniversityZusha.forms
             }
         }
 
+
+        //Todo: onle courses with grade 80 and above should be shown
         private void LoadStudentCourses(int studentID)
         {
             using (SqlConnection con = new SqlConnection(connectionString))
@@ -327,6 +329,7 @@ namespace UniversityZusha.forms
             }
         }
 
+        //Todo: Track credits 0 and when adding a course to a track, the track credits should be updated
         private void InitializeTrackCourseTab(TabPage tab)
         {
             // יצירת DataGridViews
@@ -971,7 +974,7 @@ namespace UniversityZusha.forms
             }
         }
 
-
+        //Todo: add TotalCredits to Student by the track
         private void ApproveStudent(int authID, int trackID)
         {
             try

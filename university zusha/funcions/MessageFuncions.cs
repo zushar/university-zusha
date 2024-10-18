@@ -100,24 +100,23 @@ namespace UniversityZusha.messageFuncions
                 {
                     con.Open();
                     string query = @"
-        SELECT 
-            m.MessageID,
-            m.SentDate,
-            m.Subject,
-            CASE 
-                WHEN a.Role = 'Lecturer' THEN l.Name
-                WHEN a.Role = 'Student' THEN s.Name
-                WHEN a.Role = 'DepartmentHead' THEN dh.Name
-                ELSE a.UserName
-            END AS RecipientName
-        FROM Messages m
-        INNER JOIN Auth a ON m.RecipientID = a.AuthID
-        LEFT JOIN Lecturers l ON a.AuthID = l.AuthID
-        LEFT JOIN Students s ON a.AuthID = s.AuthID
-        LEFT JOIN DepartmentHeads dh ON a.AuthID = dh.AuthID
-        WHERE m.SenderID = @SenderID
-        ORDER BY m.SentDate DESC
-    ";
+                    SELECT 
+                        m.MessageID,
+                        m.SentDate,
+                        m.Subject,
+                        CASE 
+                            WHEN a.Role = 'Lecturer' THEN l.Name
+                            WHEN a.Role = 'Student' THEN s.Name
+                            WHEN a.Role = 'DepartmentHead' THEN dh.Name
+                            ELSE a.UserName
+                        END AS RecipientName
+                    FROM Messages m
+                    INNER JOIN Auth a ON m.RecipientID = a.AuthID
+                    LEFT JOIN Lecturers l ON a.AuthID = l.AuthID
+                    LEFT JOIN Students s ON a.AuthID = s.AuthID
+                    LEFT JOIN DepartmentHeads dh ON a.AuthID = dh.AuthID
+                    WHERE m.SenderID = @SenderID
+                    ORDER BY m.SentDate DESC";
 
                     using (SqlCommand cmd = new SqlCommand(query, con))
                     {

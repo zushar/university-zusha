@@ -539,5 +539,131 @@ namespace UniversityZusha.dbFunctions
                 }
             }
         }
+        /// <summary>
+        /// מחזיר את רשימת הקורסים של מרצה מסוים.
+        /// </summary>
+        /// <param name="lecturerId">מזהה המרצה</param>
+        /// <returns>DataTable עם פרטי הקורסים</returns>
+        public static DataTable GetLecturerCourses(int lecturerId)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = @"
+                SELECT c.CourseName, c.Credits
+                FROM Courses c
+                INNER JOIN LecturersCourses lc ON c.CourseID = lc.CourseID
+                WHERE lc.LecturerID = @LecturerID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@LecturerID", lecturerId);
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+                    return dt;
+                }
+            }
+        }
+
+        /// <summary>
+        /// מחזיר את רשימת הסטודנטים הרשומים לקורסים של מרצה מסוים.
+        /// </summary>
+        /// <param name="lecturerId">מזהה המרצה</param>
+        /// <returns>DataTable עם פרטי הסטודנטים והקורסים</returns>
+        public static DataTable GetLecturerStudents(int lecturerId)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = @"
+                SELECT DISTINCT s.Name AS StudentName, c.CourseName
+                FROM Students s
+                INNER JOIN StudentCourses sc ON s.StudentID = sc.StudentID
+                INNER JOIN Courses c ON sc.CourseID = c.CourseID
+                INNER JOIN LecturersCourses lc ON c.CourseID = lc.CourseID
+                WHERE lc.LecturerID = @LecturerID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@LecturerID", lecturerId);
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+                    return dt;
+                }
+            }
+        }
+
+        public static (string Specialization, float AverageStars) GetLecturerInfo(int lecturerId)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = "SELECT Specialization, AverageStars FROM Lecturers WHERE LecturerID = @LecturerID";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@LecturerID", lecturerId);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return (
+                                reader["Specialization"] == DBNull.Value ? string.Empty : reader["Specialization"].ToString(),
+                                reader["AverageStars"] == DBNull.Value ? 0 : Convert.ToSingle(reader["AverageStars"])
+                            );
+                        }
+                    }
+                }
+            }
+            return (string.Empty, 0);
+        }
+
+        public static void UpdateLecturerSpecialization(int lecturerId, string specialization)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = "UPDATE Lecturers SET Specialization = @Specialization WHERE LecturerID = @LecturerID";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@LecturerID", lecturerId);
+                    cmd.Parameters.AddWithValue("@Specialization", specialization);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        /// <summary>
+        /// מחזיר את כול הקורסים של סטודנט כולל השמות של המרצים של הקורסים וכולל הנקודות זיכוי
+        /// לוקח את הקורסים של הסטודנט מטבלת StudentCourses על ידי שימוש במזהה של הסטודנט
+        /// לוקח את נקודות זיכוי מטבלת Courses על ידי שימוש במזהה של הקורס מטבלת StudentCourses
+        /// לוקח את המרצה על ידי שימוש במזהה של הקורס מטבלת LecturersCourses
+        /// </summary>
+        /// <param name="StudentId">מזהה סטודנט</param>
+        /// <returns>DataTable עם שם הקורס נקודות זיכוי ושם המרצה</returns>
+        public static DataTable GetStudentCourses(int studentId)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = @"
+                SELECT c.CourseName, c.Credits, l.Name AS LecturerName
+                FROM StudentCourses sc
+                INNER JOIN Courses c ON sc.CourseID = c.CourseID
+                INNER JOIN LecturersCourses lc ON c.CourseID = lc.CourseID
+                INNER JOIN Lecturers l ON lc.LecturerID = l.LecturerID
+                WHERE sc.StudentID = @StudentID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@StudentID", studentId);
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+                    return dt;
+                }
+            }
+        }
     }
 }

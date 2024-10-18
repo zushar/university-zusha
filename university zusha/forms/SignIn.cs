@@ -263,8 +263,9 @@ namespace UniversityZusha.forms
                         DateTime dateOfBirth = dateTimePickerStudentDateOfBirth.Value;
 
                         cmd.CommandText = @"
-                    INSERT INTO Students (AuthID, Name, PhoneNumber, Email, DateOfBirth, Image) 
+                    INSERT INTO Students (StudentID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image) 
                     VALUES (@AuthID, @StudentName, @StudentPhone, @StudentEmail, @DateOfBirth, @Image)";
+                        cmd.Parameters.AddWithValue("@StudentID", authId);
                         cmd.Parameters.AddWithValue("@AuthID", authId);
                         cmd.Parameters.AddWithValue("@StudentName", studentName);
                         cmd.Parameters.AddWithValue("@StudentPhone", studentPhone);
@@ -280,8 +281,9 @@ namespace UniversityZusha.forms
                         DateTime lecturerDateOfBirth = dateTimePickerLecturerDateOfBirth.Value;
 
                         cmd.CommandText = @"
-                    INSERT INTO Lecturers (AuthID, Name, PhoneNumber, Email, DateOfBirth, Image) 
+                    INSERT INTO Lecturers (LecturerID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image) 
                     VALUES (@AuthID, @LecturerName, @LecturerPhone, @LecturerEmail, @DateOfBirth, @Image)";
+                        cmd.Parameters.AddWithValue("@LecturerID", authId);
                         cmd.Parameters.AddWithValue("@AuthID", authId);
                         cmd.Parameters.AddWithValue("@LecturerName", lecturerName);
                         cmd.Parameters.AddWithValue("@LecturerPhone", lecturerPhone);
@@ -297,8 +299,9 @@ namespace UniversityZusha.forms
                         DateTime headDateOfBirth = dateTimePickerDepartmentHeadDateOfBirth.Value;
 
                         cmd.CommandText = @"
-                    INSERT INTO DepartmentHeads (AuthID, Name, PhoneNumber, Email, DateOfBirth, Image, ManagedDepartmentID) 
+                    INSERT INTO DepartmentHeads (DepartmentHeadID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image, ManagedDepartmentID) 
                     VALUES (@AuthID, @HeadName, @HeadPhone, @HeadEmail, @DateOfBirth, @Image, @ManagedDepartmentID)";
+                        cmd.Parameters.AddWithValue("@DepartmentHeadID", authId);
                         cmd.Parameters.AddWithValue("@AuthID", authId);
                         cmd.Parameters.AddWithValue("@HeadName", headName);
                         cmd.Parameters.AddWithValue("@HeadPhone", headPhone);
