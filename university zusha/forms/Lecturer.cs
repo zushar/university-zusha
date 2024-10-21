@@ -5,7 +5,8 @@ using System.Drawing;
 using UniversityZusha.messageFuncions;
 using UniversityZusha.dbFunctions;
 using UniversityZusha.PersonalInfoFunctions;
-using UniversityZusha.users;
+using System.Data.SqlClient;
+using System.Configuration;
 
 namespace UniversityZusha.forms
 {
@@ -15,6 +16,7 @@ namespace UniversityZusha.forms
         private Login loginForm;
         private bool isLoggingOut = false;
         private int previousTabIndex = 0;
+        private static string connectionString = ConfigurationManager.ConnectionStrings["SchoolDbConnection"].ConnectionString;
 
         public Lecturer(int lecturerId, Login loginForm)
         {
@@ -99,8 +101,7 @@ namespace UniversityZusha.forms
 
             tab.Controls.Add(dgvCourses);
         }
-
-        //Dodo: add the ability to grade students and update their grades in StudentCourses table and update currentCredits in Students table bast on courses credits
+        
         private void InitializeStudentsTab(TabPage tab)
         {
             DataGridView dgvStudents = new DataGridView();
@@ -110,11 +111,102 @@ namespace UniversityZusha.forms
             dgvStudents.Columns.Add(new DataGridViewTextBoxColumn() { Name = "StudentName", HeaderText = "שם הסטודנט", DataPropertyName = "StudentName" });
             dgvStudents.Columns.Add(new DataGridViewTextBoxColumn() { Name = "CourseName", HeaderText = "שם הקורס", DataPropertyName = "CourseName" });
 
-            // טעינת הסטודנטים הרשומים לקורסים של המרצה
-            dgvStudents.DataSource = DbFunctions.GetLecturerStudents(LecturerId);
+            // Add a column for entering grades
+            dgvStudents.Columns.Add(new DataGridViewTextBoxColumn() { Name = "Grade", HeaderText = "ציון", DataPropertyName = "Grade" });
+
+            // Load the students registered for the lecturer's courses
+            dgvStudents.DataSource = DbFunctions.GetLecturerStudentsWithGrades(LecturerId);
+
+            // Add a save button to save grades
+            Button btnSaveGrades = new Button() { Text = "שמור ציונים", Dock = DockStyle.Bottom };
+            btnSaveGrades.Click += (sender, e) => SaveStudentGrades(dgvStudents);
 
             tab.Controls.Add(dgvStudents);
+            tab.Controls.Add(btnSaveGrades);
         }
+
+        private void SaveStudentGrades(DataGridView dgvStudents)
+        {
+            foreach (DataGridViewRow row in dgvStudents.Rows)
+            {
+                if (row.IsNewRow) continue; // Skip new row placeholder
+
+                string studentName = row.Cells["StudentName"].Value.ToString();
+                string courseName = row.Cells["CourseName"].Value.ToString();
+                int grade;
+                if (!int.TryParse(row.Cells["Grade"].Value?.ToString(), out grade))
+                {
+                    MessageBox.Show("אנא הכנס ציון תקין לסטודנט " + studentName);
+                    continue;
+                }
+
+                try
+                {
+                    // Update grade in StudentCourses table
+                    UpdateStudentCourseGrade(studentName, courseName, grade);
+
+                    // Update the student's current credits based on the course credits
+                    UpdateStudentCurrentCredits(studentName);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("אירעה שגיאה במהלך עדכון הציון: " + ex.Message);
+                }
+            }
+
+            MessageBox.Show("הציונים נשמרו בהצלחה.");
+        }
+
+
+        public static void UpdateStudentCourseGrade(string studentName, string courseName, int grade)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = @"
+            UPDATE sc
+            SET sc.Grade = @Grade
+            FROM StudentCourses sc
+            INNER JOIN Students s ON sc.StudentID = s.StudentID
+            INNER JOIN Courses c ON sc.CourseID = c.CourseID
+            WHERE s.Name = @StudentName AND c.CourseName = @CourseName";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@Grade", grade);
+                    cmd.Parameters.AddWithValue("@StudentName", studentName);
+                    cmd.Parameters.AddWithValue("@CourseName", courseName);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public static void UpdateStudentCurrentCredits(string studentName)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = @"
+                    UPDATE s
+                    SET s.currentCredits = (
+                        SELECT ISNULL(SUM(c.Credits), 0)
+                        FROM StudentCourses sc
+                        INNER JOIN Courses c ON sc.CourseID = c.CourseID
+                        INNER JOIN Students s1 ON sc.StudentID = s1.StudentID
+                        WHERE s1.Name = @StudentName AND sc.Grade >= 60
+                    )
+                    FROM Students s
+                    WHERE s.Name = @StudentName";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@StudentName", studentName);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+
 
         private void InitializeLogoutTab(TabPage tab)
         {

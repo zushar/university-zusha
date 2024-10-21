@@ -12,8 +12,6 @@ namespace UniversityZusha.forms
         // רכיבי הממשק
         private Label labelTrackName;
         private TextBox textBoxTrackName;
-        private Label labelTotalCredits;
-        private NumericUpDown numericUpDownTotalCredits;
         private Button btnSave;
 
 
@@ -52,17 +50,12 @@ namespace UniversityZusha.forms
             labelTrackName = new Label() { Text = "שם מסלול:", Location = new Point(20, 20), AutoSize = true };
             textBoxTrackName = new TextBox() { Location = new Point(120, 20), Width = 200 };
 
-            labelTotalCredits = new Label() { Text = "סך נקודות זכות:", Location = new Point(20, 60), AutoSize = true };
-            numericUpDownTotalCredits = new NumericUpDown() { Location = new Point(120, 60), Width = 200, Minimum = 0, Maximum = 500 };
-
             btnSave = new Button() { Text = "שמור", Location = new Point(250, 100), Width = 70 };
             btnSave.Click += btnSave_Click;
 
             // הוספת הרכיבים לטופס
             this.Controls.Add(labelTrackName);
             this.Controls.Add(textBoxTrackName);
-            this.Controls.Add(labelTotalCredits);
-            this.Controls.Add(numericUpDownTotalCredits);
             this.Controls.Add(btnSave);
         }
 

@@ -1,0 +1,409 @@
+﻿USE [master]
+GO
+/****** Object:  Database [schooldb]    Script Date: 10/17/2024 10:10:42 AM ******/
+CREATE DATABASE [schooldb]
+ CONTAINMENT = NONE
+ ON  PRIMARY 
+( NAME = N'schooldb', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL16.SQLEXPRESS\MSSQL\DATA\schooldb.mdf' , SIZE = 73728KB , MAXSIZE = UNLIMITED, FILEGROWTH = 65536KB )
+ LOG ON 
+( NAME = N'schooldb_log', FILENAME = N'C:\Program Files\Microsoft SQL Server\MSSQL16.SQLEXPRESS\MSSQL\DATA\schooldb_log.ldf' , SIZE = 8192KB , MAXSIZE = 2048GB , FILEGROWTH = 65536KB )
+ WITH CATALOG_COLLATION = DATABASE_DEFAULT, LEDGER = OFF
+GO
+ALTER DATABASE [schooldb] SET COMPATIBILITY_LEVEL = 160
+GO
+IF (1 = FULLTEXTSERVICEPROPERTY('IsFullTextInstalled'))
+begin
+EXEC [schooldb].[dbo].[sp_fulltext_database] @action = 'enable'
+end
+GO
+ALTER DATABASE [schooldb] SET ANSI_NULL_DEFAULT OFF 
+GO
+ALTER DATABASE [schooldb] SET ANSI_NULLS OFF 
+GO
+ALTER DATABASE [schooldb] SET ANSI_PADDING OFF 
+GO
+ALTER DATABASE [schooldb] SET ANSI_WARNINGS OFF 
+GO
+ALTER DATABASE [schooldb] SET ARITHABORT OFF 
+GO
+ALTER DATABASE [schooldb] SET AUTO_CLOSE OFF 
+GO
+ALTER DATABASE [schooldb] SET AUTO_SHRINK OFF 
+GO
+ALTER DATABASE [schooldb] SET AUTO_UPDATE_STATISTICS ON 
+GO
+ALTER DATABASE [schooldb] SET CURSOR_CLOSE_ON_COMMIT OFF 
+GO
+ALTER DATABASE [schooldb] SET CURSOR_DEFAULT  GLOBAL 
+GO
+ALTER DATABASE [schooldb] SET CONCAT_NULL_YIELDS_NULL OFF 
+GO
+ALTER DATABASE [schooldb] SET NUMERIC_ROUNDABORT OFF 
+GO
+ALTER DATABASE [schooldb] SET QUOTED_IDENTIFIER OFF 
+GO
+ALTER DATABASE [schooldb] SET RECURSIVE_TRIGGERS OFF 
+GO
+ALTER DATABASE [schooldb] SET  DISABLE_BROKER 
+GO
+ALTER DATABASE [schooldb] SET AUTO_UPDATE_STATISTICS_ASYNC OFF 
+GO
+ALTER DATABASE [schooldb] SET DATE_CORRELATION_OPTIMIZATION OFF 
+GO
+ALTER DATABASE [schooldb] SET TRUSTWORTHY OFF 
+GO
+ALTER DATABASE [schooldb] SET ALLOW_SNAPSHOT_ISOLATION OFF 
+GO
+ALTER DATABASE [schooldb] SET PARAMETERIZATION SIMPLE 
+GO
+ALTER DATABASE [schooldb] SET READ_COMMITTED_SNAPSHOT OFF 
+GO
+ALTER DATABASE [schooldb] SET HONOR_BROKER_PRIORITY OFF 
+GO
+ALTER DATABASE [schooldb] SET RECOVERY SIMPLE 
+GO
+ALTER DATABASE [schooldb] SET  MULTI_USER 
+GO
+ALTER DATABASE [schooldb] SET PAGE_VERIFY CHECKSUM  
+GO
+ALTER DATABASE [schooldb] SET DB_CHAINING OFF 
+GO
+ALTER DATABASE [schooldb] SET FILESTREAM( NON_TRANSACTED_ACCESS = OFF ) 
+GO
+ALTER DATABASE [schooldb] SET TARGET_RECOVERY_TIME = 60 SECONDS 
+GO
+ALTER DATABASE [schooldb] SET DELAYED_DURABILITY = DISABLED 
+GO
+ALTER DATABASE [schooldb] SET ACCELERATED_DATABASE_RECOVERY = OFF  
+GO
+ALTER DATABASE [schooldb] SET QUERY_STORE = ON
+GO
+ALTER DATABASE [schooldb] SET QUERY_STORE (OPERATION_MODE = READ_WRITE, CLEANUP_POLICY = (STALE_QUERY_THRESHOLD_DAYS = 30), DATA_FLUSH_INTERVAL_SECONDS = 900, INTERVAL_LENGTH_MINUTES = 60, MAX_STORAGE_SIZE_MB = 1000, QUERY_CAPTURE_MODE = AUTO, SIZE_BASED_CLEANUP_MODE = AUTO, MAX_PLANS_PER_QUERY = 200, WAIT_STATS_CAPTURE_MODE = ON)
+GO
+USE [schooldb]
+GO
+/****** Object:  Table [dbo].[Auth]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Auth](
+	[AuthID] [int] IDENTITY(1,1) NOT NULL,
+	[UserName] [nvarchar](100) NOT NULL,
+	[PasswordHash] [nvarchar](256) NOT NULL,
+	[Role] [nvarchar](50) NOT NULL,
+	[RegistrationStatus] [nvarchar](50) NOT NULL,
+	[ApprovedByID] [int] NULL,
+	[LastLoginDate] [datetime] NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[AuthID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY],
+UNIQUE NONCLUSTERED 
+(
+	[UserName] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Courses]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Courses](
+	[CourseID] [int] IDENTITY(1,1) NOT NULL,
+	[CourseName] [nvarchar](100) NOT NULL,
+	[Credits] [float] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[CourseID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[DepartmentHeads]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[DepartmentHeads](
+	[DepartmentHeadID] [int] IDENTITY(1,1) NOT NULL,
+	[AuthID] [int] NOT NULL,
+	[Name] [nvarchar](100) NOT NULL,
+	[DateOfBirth] [date] NOT NULL,
+	[PhoneNumber] [nvarchar](15) NULL,
+	[Email] [nvarchar](100) NOT NULL,
+	[ManagedDepartmentID] [int] NOT NULL,
+	[Image] [varbinary](max) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[DepartmentHeadID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Departments]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Departments](
+	[DepartmentID] [int] IDENTITY(1,1) NOT NULL,
+	[DepartmentName] [nvarchar](100) NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[DepartmentID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[DepartmentTracks]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[DepartmentTracks](
+	[DepartmentID] [int] NULL,
+	[TrackID] [int] NULL
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Lecturers]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Lecturers](
+	[LecturerID] [int] IDENTITY(1,1) NOT NULL,
+	[AuthID] [int] NOT NULL,
+	[Name] [nvarchar](100) NOT NULL,
+	[DateOfBirth] [date] NOT NULL,
+	[PhoneNumber] [nvarchar](15) NULL,
+	[Email] [nvarchar](100) NOT NULL,
+	[Specialization] [varchar](255) NULL,
+	[AverageStars] [float] NULL,
+	[Image] [varbinary](max) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[LecturerID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[LecturersCourses]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[LecturersCourses](
+	[LecturerID] [int] NOT NULL,
+	[CourseID] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[LecturerID] ASC,
+	[CourseID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Messages]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Messages](
+	[MessageID] [int] IDENTITY(1,1) NOT NULL,
+	[SenderID] [int] NOT NULL,
+	[RecipientID] [int] NOT NULL,
+	[Subject] [nvarchar](100) NOT NULL,
+	[Body] [nvarchar](max) NOT NULL,
+	[SentDate] [datetime] NOT NULL,
+	[IsRead] [bit] NOT NULL,
+	[SenderRole] [nvarchar](50) NOT NULL,
+	[RecipientRole] [nvarchar](50) NOT NULL,
+	[IsFavorite] [bit] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[MessageID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[StudentAssistantCourses]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[StudentAssistantCourses](
+	[StudentID] [int] NOT NULL,
+	[CourseID] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[StudentID] ASC,
+	[CourseID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[StudentCourses]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[StudentCourses](
+	[StudentID] [int] NOT NULL,
+	[CourseID] [int] NOT NULL,
+	[EnrollmentDate] [date] NULL,
+	[Grade] [decimal](4, 2) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[StudentID] ASC,
+	[CourseID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Students]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Students](
+	[StudentID] [int] IDENTITY(1,1) NOT NULL,
+	[AuthID] [int] NOT NULL,
+	[Name] [nvarchar](100) NOT NULL,
+	[DateOfBirth] [date] NOT NULL,
+	[PhoneNumber] [nvarchar](15) NULL,
+	[Email] [nvarchar](100) NOT NULL,
+	[TrackID] [int] NULL,
+	[Specialization] [nvarchar](100) NULL,
+	[CurrentCredits] [float] NULL,
+	[TotalCredits] [float] NULL,
+	[IsAssistant] [bit] NULL,
+	[Image] [varbinary](max) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[StudentID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[TrackCourses]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[TrackCourses](
+	[TrackID] [int] NOT NULL,
+	[CourseID] [int] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[TrackID] ASC,
+	[CourseID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Tracks]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Tracks](
+	[TrackID] [int] IDENTITY(1,1) NOT NULL,
+	[TrackName] [nvarchar](100) NOT NULL,
+	[DepartmentID] [int] NOT NULL,
+	[TotalCredits] [float] NOT NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[TrackID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[UserSettings]    Script Date: 10/17/2024 10:10:42 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[UserSettings](
+	[UserID] [int] NOT NULL,
+	[SettingKey] [nvarchar](50) NOT NULL,
+	[SettingValue] [nvarchar](max) NULL,
+PRIMARY KEY CLUSTERED 
+(
+	[UserID] ASC,
+	[SettingKey] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON, OPTIMIZE_FOR_SEQUENTIAL_KEY = OFF) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[Auth] ADD  DEFAULT ('Pending') FOR [RegistrationStatus]
+GO
+ALTER TABLE [dbo].[Lecturers] ADD  DEFAULT ((0)) FOR [AverageStars]
+GO
+ALTER TABLE [dbo].[Messages] ADD  DEFAULT (getdate()) FOR [SentDate]
+GO
+ALTER TABLE [dbo].[Messages] ADD  DEFAULT ((0)) FOR [IsRead]
+GO
+ALTER TABLE [dbo].[Messages] ADD  DEFAULT ((0)) FOR [IsFavorite]
+GO
+ALTER TABLE [dbo].[Students] ADD  DEFAULT ((0)) FOR [CurrentCredits]
+GO
+ALTER TABLE [dbo].[Students] ADD  DEFAULT ((0)) FOR [TotalCredits]
+GO
+ALTER TABLE [dbo].[Students] ADD  DEFAULT ((0)) FOR [IsAssistant]
+GO
+ALTER TABLE [dbo].[Auth]  WITH CHECK ADD FOREIGN KEY([ApprovedByID])
+REFERENCES [dbo].[Auth] ([AuthID])
+GO
+ALTER TABLE [dbo].[DepartmentHeads]  WITH CHECK ADD FOREIGN KEY([AuthID])
+REFERENCES [dbo].[Auth] ([AuthID])
+GO
+ALTER TABLE [dbo].[DepartmentHeads]  WITH CHECK ADD FOREIGN KEY([ManagedDepartmentID])
+REFERENCES [dbo].[Departments] ([DepartmentID])
+GO
+ALTER TABLE [dbo].[DepartmentTracks]  WITH CHECK ADD FOREIGN KEY([DepartmentID])
+REFERENCES [dbo].[Departments] ([DepartmentID])
+GO
+ALTER TABLE [dbo].[DepartmentTracks]  WITH CHECK ADD FOREIGN KEY([TrackID])
+REFERENCES [dbo].[Tracks] ([TrackID])
+GO
+ALTER TABLE [dbo].[Lecturers]  WITH CHECK ADD FOREIGN KEY([AuthID])
+REFERENCES [dbo].[Auth] ([AuthID])
+GO
+ALTER TABLE [dbo].[LecturersCourses]  WITH CHECK ADD FOREIGN KEY([CourseID])
+REFERENCES [dbo].[Courses] ([CourseID])
+GO
+ALTER TABLE [dbo].[LecturersCourses]  WITH CHECK ADD FOREIGN KEY([LecturerID])
+REFERENCES [dbo].[Lecturers] ([LecturerID])
+GO
+ALTER TABLE [dbo].[Messages]  WITH CHECK ADD FOREIGN KEY([RecipientID])
+REFERENCES [dbo].[Auth] ([AuthID])
+GO
+ALTER TABLE [dbo].[Messages]  WITH CHECK ADD FOREIGN KEY([SenderID])
+REFERENCES [dbo].[Auth] ([AuthID])
+GO
+ALTER TABLE [dbo].[StudentAssistantCourses]  WITH CHECK ADD FOREIGN KEY([CourseID])
+REFERENCES [dbo].[Courses] ([CourseID])
+GO
+ALTER TABLE [dbo].[StudentAssistantCourses]  WITH CHECK ADD FOREIGN KEY([StudentID])
+REFERENCES [dbo].[Students] ([StudentID])
+GO
+ALTER TABLE [dbo].[StudentCourses]  WITH CHECK ADD FOREIGN KEY([CourseID])
+REFERENCES [dbo].[Courses] ([CourseID])
+GO
+ALTER TABLE [dbo].[StudentCourses]  WITH CHECK ADD FOREIGN KEY([StudentID])
+REFERENCES [dbo].[Students] ([StudentID])
+GO
+ALTER TABLE [dbo].[Students]  WITH CHECK ADD FOREIGN KEY([AuthID])
+REFERENCES [dbo].[Auth] ([AuthID])
+GO
+ALTER TABLE [dbo].[Students]  WITH CHECK ADD FOREIGN KEY([TrackID])
+REFERENCES [dbo].[Tracks] ([TrackID])
+GO
+ALTER TABLE [dbo].[TrackCourses]  WITH CHECK ADD FOREIGN KEY([CourseID])
+REFERENCES [dbo].[Courses] ([CourseID])
+GO
+ALTER TABLE [dbo].[TrackCourses]  WITH CHECK ADD FOREIGN KEY([TrackID])
+REFERENCES [dbo].[Tracks] ([TrackID])
+GO
+ALTER TABLE [dbo].[Tracks]  WITH CHECK ADD FOREIGN KEY([DepartmentID])
+REFERENCES [dbo].[Departments] ([DepartmentID])
+GO
+ALTER TABLE [dbo].[UserSettings]  WITH CHECK ADD  CONSTRAINT [FK_UserSettings_Auth] FOREIGN KEY([UserID])
+REFERENCES [dbo].[Auth] ([AuthID])
+GO
+ALTER TABLE [dbo].[UserSettings] CHECK CONSTRAINT [FK_UserSettings_Auth]
+GO
+USE [master]
+GO
+ALTER DATABASE [schooldb] SET  READ_WRITE 
+GO

@@ -3,7 +3,6 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Configuration;
 using System.Windows.Forms;
-using System.IO;
 
 namespace UniversityZusha.dbFunctions
 {
@@ -76,6 +75,81 @@ namespace UniversityZusha.dbFunctions
             }
         }
 
+
+        public static int GetTrackTotalCredits(int TrackID)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = "SELECT TotalCredits FROM Tracks WHERE TrackID = @TrackID";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@TrackID", TrackID);
+                    object result = cmd.ExecuteScalar();
+                    if (result != null && result != DBNull.Value)
+                    {
+                        return Convert.ToInt32(result);
+                    }
+                    else
+                    {
+                        throw new Exception("לא נמצאו נקודות זיכוי עבור המסלול הנוכחי.");
+                    }
+                }
+            }
+        }
+
+        public static void UpdateStudentTotalCredits(int authID, int trackID)
+        {
+            try
+            {
+                // Get the total credits for the track
+                int totalCredits = GetTrackTotalCredits(trackID);
+
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    con.Open();
+
+                    // Update the student's TotalCredits based on the track
+                    string query = @"
+                UPDATE Students SET TotalCredits = @TotalCredits WHERE AuthID = @AuthID;
+            ";
+
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@AuthID", authID);
+                        cmd.Parameters.AddWithValue("@TotalCredits", totalCredits);
+                        cmd.ExecuteNonQuery();
+                    }
+
+                    MessageBox.Show("הנקודות זיכוי של הסטודנט עודכנו בהצלחה.");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("אירעה שגיאה במהלך עדכון הנקודות זיכוי: " + ex.Message);
+            }
+        }
+
+
+        public static String GetTrackNameByID(int trackID)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+
+                string query = "SELECT TrackID, TrackName, TotalCredits FROM Tracks WHERE TrackID = @TrackID";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@TrackID", trackID);
+
+                    SqlDataAdapter da = new SqlDataAdapter(cmd);
+                    DataTable dt = new DataTable();
+                    da.Fill(dt);
+                    return dt.Columns["TrackName"].ToString();
+                }
+            }
+        }
+
         // פונקציה לשליפת קורס לפי CourseID
         public static DataTable GetCourseByID(int courseID)
         {
@@ -98,7 +172,7 @@ namespace UniversityZusha.dbFunctions
         }
 
         // פונקציה להוספת מסלול חדש
-        public static void InsertTrack(string trackName, int departmentID, int totalCredits)
+        public static void InsertTrack(string trackName, int departmentID)
         {
             using (SqlConnection con = new SqlConnection(connectionString))
             {
@@ -108,23 +182,22 @@ namespace UniversityZusha.dbFunctions
                 {
                     cmd.Parameters.AddWithValue("@TrackName", trackName);
                     cmd.Parameters.AddWithValue("@DepartmentID", departmentID);
-                    cmd.Parameters.AddWithValue("@TotalCredits", totalCredits);
+                    cmd.Parameters.AddWithValue("@TotalCredits", 0);
                     cmd.ExecuteNonQuery();
                 }
             }
         }
 
         // פונקציה לעדכון מסלול קיים
-        public static void UpdateTrack(int trackID, string trackName, int totalCredits)
+        public static void UpdateTrack(int trackID, string trackName)
         {
             using (SqlConnection con = new SqlConnection(connectionString))
             {
                 con.Open();
-                string query = "UPDATE Tracks SET TrackName = @TrackName, TotalCredits = @TotalCredits WHERE TrackID = @TrackID";
+                string query = "UPDATE Tracks SET TrackName = @TrackNames WHERE TrackID = @TrackID";
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
                     cmd.Parameters.AddWithValue("@TrackName", trackName);
-                    cmd.Parameters.AddWithValue("@TotalCredits", totalCredits);
                     cmd.Parameters.AddWithValue("@TrackID", trackID);
                     cmd.ExecuteNonQuery();
                 }
@@ -205,6 +278,60 @@ namespace UniversityZusha.dbFunctions
             }
         }
 
+        // פונקציה לעדכן נקודות זיכוי של מסלול בהסתמך על הנקודות זיכוי של כול הקורסים המשויכים למסלול
+        public static void UpdateTrackTotalCredits(int trackID)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                string query = @"
+                    UPDATE t
+                    SET t.TotalCredits = ISNULL((
+                        SELECT SUM(Credits)
+                        FROM Courses c
+                        INNER JOIN TrackCourses tc ON c.CourseID = tc.CourseID
+                        WHERE tc.TrackID = @TrackID
+                    ), 0)
+                    FROM Tracks t
+                    WHERE t.TrackID = @TrackID
+                ";
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@TrackID", trackID);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public static void UpdateStudentsTotalCreditsByTrack(int trackID)
+        {
+            try
+            {
+                using (SqlConnection con = new SqlConnection(connectionString))
+                {
+                    con.Open();
+                    // Query to update TotalCredits for all students in the specified track
+                    string query = @"
+                UPDATE s
+                SET s.TotalCredits = t.TotalCredits
+                FROM Students s
+                INNER JOIN Tracks t ON s.TrackID = t.TrackID
+                WHERE s.TrackID = @TrackID;
+            ";
+
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@TrackID", trackID);
+                        cmd.ExecuteNonQuery();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("אירעה שגיאה במהלך עדכון הנקודות זיכוי של הסטודנטים: " + ex.Message);
+            }
+        }
+
         // פונקציה למחיקת קורס
         public static void DeleteCourse(int courseID, int trackID)
         {
@@ -237,6 +364,7 @@ namespace UniversityZusha.dbFunctions
                         }
                     }
                 }
+                UpdateTrackTotalCredits(trackID);
             }
         }
 
@@ -571,18 +699,18 @@ namespace UniversityZusha.dbFunctions
         /// </summary>
         /// <param name="lecturerId">מזהה המרצה</param>
         /// <returns>DataTable עם פרטי הסטודנטים והקורסים</returns>
-        public static DataTable GetLecturerStudents(int lecturerId)
+        public static DataTable GetLecturerStudentsWithGrades(int lecturerId)
         {
             using (SqlConnection con = new SqlConnection(connectionString))
             {
                 con.Open();
                 string query = @"
-                SELECT DISTINCT s.Name AS StudentName, c.CourseName
-                FROM Students s
-                INNER JOIN StudentCourses sc ON s.StudentID = sc.StudentID
-                INNER JOIN Courses c ON sc.CourseID = c.CourseID
-                INNER JOIN LecturersCourses lc ON c.CourseID = lc.CourseID
-                WHERE lc.LecturerID = @LecturerID";
+            SELECT DISTINCT s.Name AS StudentName, c.CourseName, sc.Grade
+            FROM Students s
+            INNER JOIN StudentCourses sc ON s.StudentID = sc.StudentID
+            INNER JOIN Courses c ON sc.CourseID = c.CourseID
+            INNER JOIN LecturersCourses lc ON c.CourseID = lc.CourseID
+            WHERE lc.LecturerID = @LecturerID";
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
@@ -641,19 +769,19 @@ namespace UniversityZusha.dbFunctions
         /// לוקח את המרצה על ידי שימוש במזהה של הקורס מטבלת LecturersCourses
         /// </summary>
         /// <param name="StudentId">מזהה סטודנט</param>
-        /// <returns>DataTable עם שם הקורס נקודות זיכוי ושם המרצה</returns>
+        /// <returns>DataTable עם שם הקורס נקודות זיכוי ומזהה מרצה</returns>
         public static DataTable GetStudentCourses(int studentId)
         {
             using (SqlConnection con = new SqlConnection(connectionString))
             {
                 con.Open();
                 string query = @"
-                SELECT c.CourseName, c.Credits, l.Name AS LecturerName
-                FROM StudentCourses sc
-                INNER JOIN Courses c ON sc.CourseID = c.CourseID
-                INNER JOIN LecturersCourses lc ON c.CourseID = lc.CourseID
-                INNER JOIN Lecturers l ON lc.LecturerID = l.LecturerID
-                WHERE sc.StudentID = @StudentID";
+        SELECT c.CourseName, c.Credits, l.Name AS LecturerName, l.LecturerID
+        FROM StudentCourses sc
+        INNER JOIN Courses c ON sc.CourseID = c.CourseID
+        INNER JOIN LecturersCourses lc ON c.CourseID = lc.CourseID
+        INNER JOIN Lecturers l ON lc.LecturerID = l.LecturerID
+        WHERE sc.StudentID = @StudentID";
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
@@ -665,5 +793,64 @@ namespace UniversityZusha.dbFunctions
                 }
             }
         }
+
+
+        public static void SaveLecturerRating( int lecturerId, int rating)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+
+                // Add the new rating to the lecturer's total stars
+                string query = @"
+                UPDATE Lecturers
+                SET AverageStars = AverageStars + @Rating
+                WHERE LecturerID = @LecturerID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@LecturerID", lecturerId);
+                    cmd.Parameters.AddWithValue("@Rating", rating);
+                    cmd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public static (int CurrentCredits, int TotalCredits) GetStudentInfo(int studentId)
+        {
+            using (SqlConnection con = new SqlConnection(connectionString))
+            {
+                con.Open();
+                // Query to retrieve current and total credits for the student
+                string query = @"
+            SELECT 
+                s.CurrentCredits, 
+                t.TotalCredits 
+            FROM Students s
+            INNER JOIN Tracks t ON s.TrackID = t.TrackID
+            WHERE s.StudentID = @StudentID";
+
+                using (SqlCommand cmd = new SqlCommand(query, con))
+                {
+                    cmd.Parameters.AddWithValue("@StudentID", studentId);
+                    using (SqlDataReader reader = cmd.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            int currentCredits = reader["CurrentCredits"] != DBNull.Value ? Convert.ToInt32(reader["CurrentCredits"]) : 0;
+                            int totalCredits = reader["TotalCredits"] != DBNull.Value ? Convert.ToInt32(reader["TotalCredits"]) : 0;
+
+                            return (currentCredits, totalCredits);
+                        }
+                        else
+                        {
+                            throw new Exception("לא נמצאו פרטים עבור הסטודנט הנוכחי.");
+                        }
+                    }
+                }
+            }
+        }
+
+
     }
 }

@@ -78,7 +78,7 @@
             this.textBoxIdNum.MaxLength = 9;
             this.textBoxIdNum.Name = "textBoxIdNum";
             this.textBoxIdNum.Size = new System.Drawing.Size(200, 24);
-            this.textBoxIdNum.TabIndex = 2;
+            this.textBoxIdNum.TabIndex = 1;
             // 
             // textBoxPasswordHash
             // 
@@ -88,7 +88,7 @@
             this.textBoxPasswordHash.MaxLength = 10;
             this.textBoxPasswordHash.Name = "textBoxPasswordHash";
             this.textBoxPasswordHash.Size = new System.Drawing.Size(200, 24);
-            this.textBoxPasswordHash.TabIndex = 5;
+            this.textBoxPasswordHash.TabIndex = 2;
             this.textBoxPasswordHash.UseSystemPasswordChar = true;
             // 
             // buttonLogin
@@ -100,7 +100,7 @@
             this.buttonLogin.Margin = new System.Windows.Forms.Padding(2);
             this.buttonLogin.Name = "buttonLogin";
             this.buttonLogin.Size = new System.Drawing.Size(187, 61);
-            this.buttonLogin.TabIndex = 7;
+            this.buttonLogin.TabIndex = 3;
             this.buttonLogin.Text = "התחברות";
             this.buttonLogin.UseVisualStyleBackColor = false;
             this.buttonLogin.Click += new System.EventHandler(this.buttonLogin_Click);
@@ -113,7 +113,7 @@
             this.buttonSubscribe.Margin = new System.Windows.Forms.Padding(2);
             this.buttonSubscribe.Name = "buttonSubscribe";
             this.buttonSubscribe.Size = new System.Drawing.Size(187, 61);
-            this.buttonSubscribe.TabIndex = 8;
+            this.buttonSubscribe.TabIndex = 4;
             this.buttonSubscribe.Text = "להרשמה";
             this.buttonSubscribe.UseVisualStyleBackColor = false;
             this.buttonSubscribe.Click += new System.EventHandler(this.buttonSubscribe_Click);
@@ -148,7 +148,7 @@
             this.panelImag.Size = new System.Drawing.Size(230, 380);
             this.panelImag.TabIndex = 3;
             // 
-            // login
+            // Login
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -164,7 +164,7 @@
             this.Controls.Add(this.textBoxIdNum);
             this.Controls.Add(this.panelTop);
             this.Controls.Add(this.labelIdNum);
-            this.Name = "login";
+            this.Name = "Login";
             this.Text = "login";
             this.panelTop.ResumeLayout(false);
             this.panelTop.PerformLayout();

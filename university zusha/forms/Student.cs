@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Data;
 using System.Drawing;
 using System.Windows.Forms;
 using UniversityZusha.dbFunctions;
@@ -61,28 +62,29 @@ namespace UniversityZusha.forms
             this.Controls.Add(tabControl);
         }
 
-        //todo: add CurrentCredits and TotalCredits to the personal info tab
         private void InitializePersonalInfoTab(TabPage tab)
         {
-            PersonalInfo.InitializePersonalInfoTab(tab, StudentId, "Lecturer");
+            // Initialize the personal info tab with existing personal info
+            PersonalInfo.InitializePersonalInfoTab(tab, StudentId, "Student");
 
-            // הוספת שדות להתמחות וכוכבים
-            Label lblSpecialization = new Label() { Text = "התמחות:", Location = new Point(20, 220) };
-            TextBox txtSpecialization = new TextBox() { Location = new Point(150, 220), Width = 200 };
+            // Add labels for CurrentCredits and TotalCredits
+            Label lblCurrentCredits = new Label() { Text = "נקודות זכות נוכחיות:", Location = new Point(20, 220) };
+            Label lblTotalCredits = new Label() { Text = "סה\"כ נקודות זכות:", Location = new Point(20, 260) };
+            Label lblCurrentCreditsValue = new Label() { Location = new Point(150, 220), Width = 100 };
+            Label lblTotalCreditsValue = new Label() { Location = new Point(150, 260), Width = 100 };
 
-            Button btnUpdateSpecialization = new Button() { Text = "עדכן התמחות", Location = new Point(150, 300) };
-            btnUpdateSpecialization.Click += (sender, e) => DbFunctions.UpdateLecturerSpecialization(StudentId, txtSpecialization.Text);
+            // Retrieve the current credits and total credits for the student
+            var studentInfo = DbFunctions.GetStudentInfo(StudentId); // This function should retrieve Student's CurrentCredits and TotalCredits
+            lblCurrentCreditsValue.Text = studentInfo.CurrentCredits.ToString();
+            lblTotalCreditsValue.Text = studentInfo.TotalCredits.ToString();
 
-            tab.Controls.Add(lblSpecialization);
-            tab.Controls.Add(txtSpecialization);
-            tab.Controls.Add(btnUpdateSpecialization);
-
-            // טעינת ערכים נוכחיים
-            var lecturerInfo = DbFunctions.GetLecturerInfo(StudentId);
-            txtSpecialization.Text = lecturerInfo.Specialization ?? string.Empty;
+            // Add labels to the tab
+            tab.Controls.Add(lblCurrentCredits);
+            tab.Controls.Add(lblCurrentCreditsValue);
+            tab.Controls.Add(lblTotalCredits);
+            tab.Controls.Add(lblTotalCreditsValue);
         }
 
-        //Todo: add giving stars to lecturers
         private void InitializCoursesTab(TabPage tab)
         {
             // טבלת קורסים
@@ -94,19 +96,94 @@ namespace UniversityZusha.forms
             dgvCourses.AllowUserToOrderColumns = false;
             dgvCourses.AllowUserToResizeColumns = false;
             dgvCourses.AllowUserToResizeRows = false;
-            dgvCourses.ReadOnly = true;
+            dgvCourses.ReadOnly = false; // Set to false to allow editing in the rating column
 
             // הוספת עמודות לטבלה
-            dgvCourses.Columns.Add(new DataGridViewTextBoxColumn() { DataPropertyName = "CourseName", HeaderText = "שם קורס", Width = 200 });
-            dgvCourses.Columns.Add(new DataGridViewColumn() { DataPropertyName = "Credits", HeaderText = "נקודות זכות", Width = 100 });
-            dgvCourses.Columns.Add(new DataGridViewTextBoxColumn() { DataPropertyName = "LecturerName", HeaderText = "שם מרצה", Width = 200 });
+            dgvCourses.Columns.Add(new DataGridViewTextBoxColumn()
+            {
+                DataPropertyName = "CourseName",
+                HeaderText = "שם קורס",
+                Width = 200
+            });
+            dgvCourses.Columns.Add(new DataGridViewTextBoxColumn()
+            {
+                DataPropertyName = "Credits",
+                HeaderText = "נקודות זכות",
+                Width = 100
+            });
+            dgvCourses.Columns.Add(new DataGridViewTextBoxColumn()
+            {
+                DataPropertyName = "LecturerName",
+                HeaderText = "שם מרצה",
+                Width = 200
+            });
+
+            // Hidden column for LecturerID (make sure this has the Name property)
+            dgvCourses.Columns.Add(new DataGridViewTextBoxColumn()
+            {
+                DataPropertyName = "LecturerID",
+                HeaderText = "LecturerID",
+                Visible = false,
+                Name = "LecturerID"  // Set the name explicitly
+            });
+
+            // הוספת עמודת דירוג מרצה (כוכבים)
+            DataGridViewComboBoxColumn ratingColumn = new DataGridViewComboBoxColumn();
+            ratingColumn.HeaderText = "דרג מרצה";
+            ratingColumn.Items.AddRange(1, 2, 3, 4, 5); // Allow students to select a rating between 1 and 5
+            ratingColumn.Name = "Rating"; // Set the name of the rating column
+            dgvCourses.Columns.Add(ratingColumn);
 
             // טעינת הנתונים לטבלה
             dgvCourses.DataSource = DbFunctions.GetStudentCourses(StudentId);
 
+            // Set default value for the rating column to 5
+            foreach (DataGridViewRow row in dgvCourses.Rows)
+            {
+                row.Cells["Rating"].Value = 5; // Default rating is 5
+            }
+
             // הוספת הטבלה ללשונית
             tab.Controls.Add(dgvCourses);
+
+            // הוספת כפתור לשליחת דירוגים
+            Button btnSubmitRatings = new Button() { Text = "שלח דירוגים", Dock = DockStyle.Bottom };
+            btnSubmitRatings.Click += (sender, e) => SubmitRatings(dgvCourses);
+            tab.Controls.Add(btnSubmitRatings);
         }
+
+
+        private void dgvCourses_DataError(object sender, DataGridViewDataErrorEventArgs e)
+        {
+            if (e.Exception != null)
+            {
+                MessageBox.Show("An error occurred: " + e.Exception.Message);
+                e.ThrowException = false; // Prevent the crash
+            }
+        }
+
+        private void SubmitRatings(DataGridView dgvCourses)
+        {
+            foreach (DataGridViewRow row in dgvCourses.Rows)
+            {
+                // Get lecturer ID and rating from the grid using the column name "LecturerID"
+                int lecturerID = Convert.ToInt32(row.Cells["LecturerID"].Value); // Ensure this matches the exact column name
+
+                if (row.Cells["Rating"].Value != null) // Assuming "Rating" is the rating column
+                {
+                    int rating = Convert.ToInt32(row.Cells["Rating"].Value);
+
+                    // Save the rating to the database
+                    DbFunctions.SaveLecturerRating(lecturerID, rating);
+                }
+            }
+
+            MessageBox.Show("הדירוגים נשמרו בהצלחה.");
+        }
+
+
+
+
         private void InitializeLogoutTab(TabPage tab)
         {
             // יצירת כפתור התנתקות

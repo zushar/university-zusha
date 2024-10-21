@@ -18,59 +18,62 @@ namespace UniversityZusha
             CheckAndCreateFirstAdmin();
         }
 
+        /// <summary>
+        /// Checks if the first admin exists in the system and creates one if not.
+        /// </summary>
         private void CheckAndCreateFirstAdmin()
         {
             using (SqlConnection connection = new SqlConnection(connectionString))
             {
                 connection.Open();
-
                 try
                 {
                     string checkAdminQuery = "SELECT COUNT(*) FROM Auth WHERE Role = 'Admin'";
                     SqlCommand checkAdminCommand = new SqlCommand(checkAdminQuery, connection);
                     int adminCount = (int)checkAdminCommand.ExecuteScalar();
-
                     if (adminCount > 0)
-                    {
-                        Console.WriteLine("אדמין כבר קיים במערכת.");
-                        return;
-                    }
 
-                    // יצירת הסיסמה המוצפנת
+                    {
+
+                        Console.WriteLine("אדמין כבר קיים במערכת.");
+
+                        return;
+
+                    }
                     string adminPassword = "password";
                     string hashedPassword = PasswordHashHelper.HashPasswordHash(adminPassword);
-
-                    // הוספת אדמין לטבלת Auth
-                    string insertAuthQuery = @"INSERT INTO Auth (UserName, PasswordHash, Role, RegistrationStatus) 
-                                               VALUES (@UserName, @PasswordHash, @Role, @RegistrationStatus)";
-
+                    string insertAuthQuery = @"INSERT INTO Auth (AuthID, UserName, PasswordHash, Role, RegistrationStatus) 
+                                                       VALUES (@AuthID, @UserName, @PasswordHash, @Role, @RegistrationStatus)";
                     SqlCommand authCommand = new SqlCommand(insertAuthQuery, connection);
+                    authCommand.Parameters.AddWithValue("@AuthID", 1);
                     authCommand.Parameters.AddWithValue("@UserName", "admin");
+
                     authCommand.Parameters.AddWithValue("@PasswordHash", hashedPassword);
+
                     authCommand.Parameters.AddWithValue("@Role", "Admin");
                     authCommand.Parameters.AddWithValue("@RegistrationStatus", "Approved");
                     authCommand.ExecuteNonQuery();
-
-                    // קבלת ה-AuthID של האדמין
                     string selectAuthIDQuery = "SELECT TOP 1 AuthID FROM Auth WHERE UserName = @UserName ORDER BY AuthID DESC";
                     SqlCommand selectAuthIDCommand = new SqlCommand(selectAuthIDQuery, connection);
                     selectAuthIDCommand.Parameters.AddWithValue("@UserName", "admin");
                     int adminAuthID = (int)selectAuthIDCommand.ExecuteScalar();
-
-                    // הוספת ראש מחלקה
-                    string insertDepartmentHeadQuery = @"INSERT INTO DepartmentHeads (AuthID, Name, DateOfBirth, PhoneNumber, Email, EmployeeNumber, ManagedDepartmentID) 
-                                                         VALUES (@AuthID, @Name, @DateOfBirth, @PhoneNumber, @Email, @EmployeeNumber, @ManagedDepartmentID)";
+                    string insertDepartmentHeadQuery = @"INSERT INTO DepartmentHeads (AuthID, Name, DateOfBirth, PhoneNumber, Email, ManagedDepartmentID) 
+                                                                 VALUES (@AuthID, @Name, @DateOfBirth, @PhoneNumber, @Email,, @ManagedDepartmentID)";
                     SqlCommand departmentHeadCommand = new SqlCommand(insertDepartmentHeadQuery, connection);
+
                     departmentHeadCommand.Parameters.AddWithValue("@AuthID", adminAuthID);
+
                     departmentHeadCommand.Parameters.AddWithValue("@Name", "Admin Name");
+
                     departmentHeadCommand.Parameters.AddWithValue("@DateOfBirth", new DateTime(1980, 1, 1));
+
                     departmentHeadCommand.Parameters.AddWithValue("@PhoneNumber", "050-1234567");
+
                     departmentHeadCommand.Parameters.AddWithValue("@Email", "admin@example.com");
-                    departmentHeadCommand.Parameters.AddWithValue("@EmployeeNumber", "EMP001");
+
                     departmentHeadCommand.Parameters.AddWithValue("@ManagedDepartmentID", 1);
 
                     departmentHeadCommand.ExecuteNonQuery();
-
                     Console.WriteLine("אדמין ראשון נוסף בהצלחה!");
                 }
                 catch (SqlException ex)
@@ -78,8 +81,16 @@ namespace UniversityZusha
                     MessageBox.Show("שגיאה במסד הנתונים: " + ex.Message);
                 }
             }
-        }
+        }
 
+        /// <summary>
+        /// Event handler for the buttonLogin click event.
+        /// Attempts to log in the user based on the entered username and password.
+        /// If the login is successful, it hides the current form and opens a new form based on the user's role.
+        /// If the login fails, it displays an error message.
+        /// </summary>
+        /// <param name="sender">The object that raised the event.</param>
+        /// <param name="e">The event arguments.</param>
         private void buttonLogin_Click(object sender, EventArgs e)
         {
             using (SqlConnection con = new SqlConnection(connectionString))
@@ -128,7 +139,7 @@ namespace UniversityZusha
                                 {
                                     Student studentForm = new Student(userId, this);
                                     studentForm.Show();
-                                } 
+                                }
                             }
                             else
                             {
@@ -148,8 +159,12 @@ namespace UniversityZusha
             }
         }
 
-
-
+        /// <summary>
+        /// Event handler for the buttonSubscribe click event.
+        /// Opens the SignIn form as a dialog.
+        /// </summary>
+        /// <param name="sender">The object that raised the event.</param>
+        /// <param name="e">The event arguments.</param>
         private void buttonSubscribe_Click(object sender, EventArgs e)
         {
             SignIn signIn = new SignIn();

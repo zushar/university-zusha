@@ -47,16 +47,21 @@ namespace UniversityZusha.forms
 
             if (courseID.HasValue)
             {
-                // עדכון קורס קיים
+                // Update existing course
                 DbFunctions.UpdateCourse(courseID.Value, textBoxCourseName.Text, (int)numericUpDownCredits.Value);
+                DbFunctions.UpdateTrackTotalCredits(trackID);
             }
             else
             {
-                // הוספת קורס חדש
+                // Insert new course
                 int newCourseID = DbFunctions.InsertCourse(textBoxCourseName.Text, (int)numericUpDownCredits.Value);
-                // קישור הקורס למסלול
+                // Link course to track
                 DbFunctions.InsertTrackCourse(trackID, newCourseID);
+                DbFunctions.UpdateTrackTotalCredits(trackID);
             }
+
+            // Update the TotalCredits for all students in the updated track
+            DbFunctions.UpdateStudentsTotalCreditsByTrack(trackID);
 
             this.DialogResult = DialogResult.OK;
             this.Close();

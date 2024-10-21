@@ -4,9 +4,6 @@ using System.Data.SqlClient;
 using System.Windows.Forms;
 using UniversityZusha.funcions;
 using System.IO;
-using System.Drawing;
-
-
 
 namespace UniversityZusha.forms
 {
@@ -15,6 +12,7 @@ namespace UniversityZusha.forms
         // מחרוזת החיבור למסד הנתונים
         private static string connectionString = ConfigurationManager.ConnectionStrings["SchoolDbConnection"].ConnectionString;
         private byte[] defaultImageBytes;
+        int authID;
 
         public SignIn()
         {
@@ -125,81 +123,102 @@ namespace UniversityZusha.forms
             return null;
         }
 
-        private int saveUser()
+        private int SaveUser()
         {
             try
             {
+                // Validate password confirmation
                 if (textBoxPassword.Text != textBoxPasswordCon.Text)
                 {
                     MessageBox.Show("הסיסמאות אינן תואמות.");
-                    return -1; // חזרה במקרה של שגיאה
+                    return -1; // Return in case of error
                 }
 
-                String UserName = textBoxUserId.Text;
-                String PasswordHash = PasswordHashHelper.HashPasswordHash(textBoxPassword.Text);
-                String Role = comboBoxRole.Text;
-                if (Role == "סטודנט")
+                string userName = textBoxUserId.Text.Trim();
+
+                // Validate UserName is numeric
+                if (!int.TryParse(userName, out int authID))
                 {
-                    Role = "Student";
-                }
-                else if (Role == "מרצה")
-                {
-                    Role = "Lecturer";
-                }
-                else if (Role == "ראש מחלקה")
-                {
-                    Role = "DepartmentHead";
+                    MessageBox.Show("תעודת זהות חייבת להיות מספרית.");
+                    return -1; // Return in case of error
                 }
 
-                if (Role == "")
+                // Hash the password
+                string passwordHash = PasswordHashHelper.HashPasswordHash(textBoxPassword.Text);
+
+                // Map role from Hebrew to English
+                string role = comboBoxRole.Text.Trim();
+                switch (role)
+                {
+                    case "סטודנט":
+                        role = "Student";
+                        break;
+                    case "מרצה":
+                        role = "Lecturer";
+                        break;
+                    case "ראש מחלקה":
+                        role = "DepartmentHead";
+                        break;
+                    default:
+                        role = "";
+                        break;
+                }
+
+                // Validate role selection
+                if (string.IsNullOrEmpty(role))
                 {
                     MessageBox.Show("אנא בחר תפקיד.");
-                    return -1; // חזרה במקרה של שגיאה
-                }
-                if (UserName == "" || PasswordHash == "")
-                {
-                    MessageBox.Show("אנא מלא את כל השדות.");
-                    return -1; // חזרה במקרה של שגיאה
-                }
-                if (UserName.Length < 9)
-                {
-                    MessageBox.Show("שם משתמש חייב להיות תעודת זהות.");
-                    return -1; // חזרה במקרה של שגיאה
+                    return -1; // Return in case of error
                 }
 
+                // Validate required fields
+                if (string.IsNullOrEmpty(userName) || string.IsNullOrEmpty(passwordHash))
+                {
+                    MessageBox.Show("אנא מלא את כל השדות.");
+                    return -1; // Return in case of error
+                }
+
+                // Validate UserName length (assuming it's a national ID)
+                if (userName.Length < 9)
+                {
+                    MessageBox.Show("שם משתמש חייב להיות תעודת זהות.");
+                    return -1; // Return in case of error
+                }
+
+                // Insert into Auth table
                 using (SqlConnection con = new SqlConnection(connectionString))
                 {
                     con.Open();
-                    String query = @"
-                INSERT INTO Auth (UserName, PasswordHash, Role, RegistrationStatus) 
-                VALUES (@UserName, @PasswordHash, @Role, @RegistrationStatus);
-                SELECT SCOPE_IDENTITY();"; // החזרת ה-AuthId החדש שנוצר
+                    string query = @"
+                INSERT INTO Auth (AuthID, UserName, PasswordHash, Role, RegistrationStatus) 
+                VALUES (@AuthID, @UserName, @PasswordHash, @Role, @RegistrationStatus);
+            ";
 
-                    SqlCommand cmd = new SqlCommand(query, con);
-                    cmd.Parameters.AddWithValue("@UserName", UserName);
-                    cmd.Parameters.AddWithValue("@PasswordHash", PasswordHash);
-                    cmd.Parameters.AddWithValue("@Role", Role);
-                    cmd.Parameters.AddWithValue("@RegistrationStatus", "Pending");
+                    using (SqlCommand cmd = new SqlCommand(query, con))
+                    {
+                        cmd.Parameters.AddWithValue("@AuthID", authID);
+                        cmd.Parameters.AddWithValue("@UserName", userName);
+                        cmd.Parameters.AddWithValue("@PasswordHash", passwordHash);
+                        cmd.Parameters.AddWithValue("@Role", role);
+                        cmd.Parameters.AddWithValue("@RegistrationStatus", "Pending");
 
-                    // ביצוע השאילתה וקבלת ה-AuthId
-                    int newAuthId = Convert.ToInt32(cmd.ExecuteScalar());
-
-                    MessageBox.Show("המשתמש נוצר בהצלחה. AuthId: " + newAuthId);
-
-                    return newAuthId; // מחזיר את ה-AuthId החדש
+                        cmd.ExecuteNonQuery(); // Execute the insert command
+                    }
                 }
+
+                return authID; // Return the new AuthID
             }
             catch (SqlException sqlEx)
             {
-                // טיפול בשגיאות מסד הנתונים
-                MessageBox.Show("שגיאה במסד הנתונים: " + sqlEx.Message);
-                return -1; // חזרה במקרה של שגיאה
+                // Log the AuthID if needed for debugging
+                MessageBox.Show($"AuthID: {authID}\nשגיאה במסד הנתונים: {sqlEx.Message}");
+                return -1; // Return in case of error
             }
             catch (Exception ex)
             {
-                // טיפול בשגיאות כלליות
+                // Handle general errors
                 MessageBox.Show("אירעה שגיאה: " + ex.Message);
-                return -1; // חזרה במקרה של שגיאה
+                return -1; // Return in case of error
             }
         }
 
@@ -240,9 +259,11 @@ namespace UniversityZusha.forms
 
         private void buttonSignIn_Click(object sender, EventArgs e)
         {
-            int authId = saveUser(); // יצירת משתמש חדש בטבלת Auth
+            int authId = SaveUser(); // Create a new user in the Auth table
+
             if (authId == -1)
             {
+                // If SaveUser failed, exit the method
                 MessageBox.Show("שגיאה ביצירת משתמש.");
                 return;
             }
@@ -251,82 +272,90 @@ namespace UniversityZusha.forms
             using (SqlConnection con = new SqlConnection(connectionString))
             {
                 con.Open();
-                SqlCommand cmd = new SqlCommand();
-                cmd.Connection = con;
-
-                switch (selectedRole)
+                using (SqlCommand cmd = new SqlCommand())
                 {
-                    case "סטודנט":
-                        string studentName = textBoxStudentName.Text;
-                        string studentPhone = textBoxStudentPhone.Text;
-                        string studentEmail = textBoxStudentEmail.Text;
-                        DateTime dateOfBirth = dateTimePickerStudentDateOfBirth.Value;
+                    cmd.Connection = con;
 
-                        cmd.CommandText = @"
-                    INSERT INTO Students (StudentID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image) 
-                    VALUES (@AuthID, @StudentName, @StudentPhone, @StudentEmail, @DateOfBirth, @Image)";
-                        cmd.Parameters.AddWithValue("@StudentID", authId);
-                        cmd.Parameters.AddWithValue("@AuthID", authId);
-                        cmd.Parameters.AddWithValue("@StudentName", studentName);
-                        cmd.Parameters.AddWithValue("@StudentPhone", studentPhone);
-                        cmd.Parameters.AddWithValue("@StudentEmail", studentEmail);
-                        cmd.Parameters.AddWithValue("@DateOfBirth", dateOfBirth);
-                        cmd.Parameters.AddWithValue("@Image", defaultImageBytes); // התמונה הדיפולטית או התמונה שהועלתה
-                        break;
+                    try
+                    {
+                        switch (selectedRole)
+                        {
+                            case "סטודנט":
+                                string studentName = textBoxStudentName.Text.Trim();
+                                string studentPhone = textBoxStudentPhone.Text.Trim();
+                                string studentEmail = textBoxStudentEmail.Text.Trim();
+                                DateTime dateOfBirth = dateTimePickerStudentDateOfBirth.Value;
 
-                    case "מרצה":
-                        string lecturerName = textBoxLecturerName.Text;
-                        string lecturerPhone = textBoxLecturerPhone.Text;
-                        string lecturerEmail = textBoxLecturerEmail.Text;
-                        DateTime lecturerDateOfBirth = dateTimePickerLecturerDateOfBirth.Value;
+                                cmd.CommandText = @"
+                            INSERT INTO Students (StudentID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image) 
+                            VALUES (@StudentID, @AuthID, @StudentName, @StudentPhone, @StudentEmail, @DateOfBirth, @Image)";
+                                cmd.Parameters.AddWithValue("@StudentID", authId);
+                                cmd.Parameters.AddWithValue("@AuthID", authId);
+                                cmd.Parameters.AddWithValue("@StudentName", studentName);
+                                cmd.Parameters.AddWithValue("@StudentPhone", studentPhone);
+                                cmd.Parameters.AddWithValue("@StudentEmail", studentEmail);
+                                cmd.Parameters.AddWithValue("@DateOfBirth", dateOfBirth);
+                                cmd.Parameters.AddWithValue("@Image", defaultImageBytes); // Ensure defaultImageBytes is defined
+                                break;
 
-                        cmd.CommandText = @"
-                    INSERT INTO Lecturers (LecturerID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image) 
-                    VALUES (@AuthID, @LecturerName, @LecturerPhone, @LecturerEmail, @DateOfBirth, @Image)";
-                        cmd.Parameters.AddWithValue("@LecturerID", authId);
-                        cmd.Parameters.AddWithValue("@AuthID", authId);
-                        cmd.Parameters.AddWithValue("@LecturerName", lecturerName);
-                        cmd.Parameters.AddWithValue("@LecturerPhone", lecturerPhone);
-                        cmd.Parameters.AddWithValue("@LecturerEmail", lecturerEmail);
-                        cmd.Parameters.AddWithValue("@DateOfBirth", lecturerDateOfBirth);
-                        cmd.Parameters.AddWithValue("@Image", defaultImageBytes); // התמונה הדיפולטית או התמונה שהועלתה
-                        break;
+                            case "מרצה":
+                                string lecturerName = textBoxLecturerName.Text.Trim();
+                                string lecturerPhone = textBoxLecturerPhone.Text.Trim();
+                                string lecturerEmail = textBoxLecturerEmail.Text.Trim();
+                                DateTime lecturerDateOfBirth = dateTimePickerLecturerDateOfBirth.Value;
 
-                    case "ראש מחלקה":
-                        string headName = textBoxDepartmentHeadName.Text;
-                        string headPhone = textBoxDepartmentHeadPhone.Text;
-                        string headEmail = textBoxDepartmentHeadEmail.Text;
-                        DateTime headDateOfBirth = dateTimePickerDepartmentHeadDateOfBirth.Value;
+                                cmd.CommandText = @"
+                            INSERT INTO Lecturers (LecturerID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image) 
+                            VALUES (@LecturerID, @AuthID, @LecturerName, @LecturerPhone, @LecturerEmail, @DateOfBirth, @Image)";
+                                cmd.Parameters.AddWithValue("@LecturerID", authId);
+                                cmd.Parameters.AddWithValue("@AuthID", authId);
+                                cmd.Parameters.AddWithValue("@LecturerName", lecturerName);
+                                cmd.Parameters.AddWithValue("@LecturerPhone", lecturerPhone);
+                                cmd.Parameters.AddWithValue("@LecturerEmail", lecturerEmail);
+                                cmd.Parameters.AddWithValue("@DateOfBirth", lecturerDateOfBirth);
+                                cmd.Parameters.AddWithValue("@Image", defaultImageBytes); // Ensure defaultImageBytes is defined
+                                break;
 
-                        cmd.CommandText = @"
-                    INSERT INTO DepartmentHeads (DepartmentHeadID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image, ManagedDepartmentID) 
-                    VALUES (@AuthID, @HeadName, @HeadPhone, @HeadEmail, @DateOfBirth, @Image, @ManagedDepartmentID)";
-                        cmd.Parameters.AddWithValue("@DepartmentHeadID", authId);
-                        cmd.Parameters.AddWithValue("@AuthID", authId);
-                        cmd.Parameters.AddWithValue("@HeadName", headName);
-                        cmd.Parameters.AddWithValue("@HeadPhone", headPhone);
-                        cmd.Parameters.AddWithValue("@HeadEmail", headEmail);
-                        cmd.Parameters.AddWithValue("@DateOfBirth", headDateOfBirth);
-                        cmd.Parameters.AddWithValue("@Image", defaultImageBytes); // התמונה הדיפולטית או התמונה שהועלתה
-                        cmd.Parameters.AddWithValue("@ManagedDepartmentID", 1);
-                        break;
+                            case "ראש מחלקה":
+                                string headName = textBoxDepartmentHeadName.Text.Trim();
+                                string headPhone = textBoxDepartmentHeadPhone.Text.Trim();
+                                string headEmail = textBoxDepartmentHeadEmail.Text.Trim();
+                                DateTime headDateOfBirth = dateTimePickerDepartmentHeadDateOfBirth.Value;
 
-                    default:
-                        MessageBox.Show("אנא בחר תפקיד.");
-                        return;
-                }
+                                cmd.CommandText = @"
+                            INSERT INTO DepartmentHeads (DepartmentHeadID, AuthID, Name, PhoneNumber, Email, DateOfBirth, Image, ManagedDepartmentID) 
+                            VALUES (@DepartmentHeadID, @AuthID, @HeadName, @HeadPhone, @HeadEmail, @DateOfBirth, @Image, @ManagedDepartmentID)";
+                                cmd.Parameters.AddWithValue("@DepartmentHeadID", authId);
+                                cmd.Parameters.AddWithValue("@AuthID", authId);
+                                cmd.Parameters.AddWithValue("@HeadName", headName);
+                                cmd.Parameters.AddWithValue("@HeadPhone", headPhone);
+                                cmd.Parameters.AddWithValue("@HeadEmail", headEmail);
+                                cmd.Parameters.AddWithValue("@DateOfBirth", headDateOfBirth);
+                                cmd.Parameters.AddWithValue("@Image", defaultImageBytes); // Ensure defaultImageBytes is defined
+                                cmd.Parameters.AddWithValue("@ManagedDepartmentID", 1); // Consider making this dynamic
+                                break;
 
-                try
-                {
-                    cmd.ExecuteNonQuery(); // הוספת המשתמש החדש לפי התפקיד לטבלה המתאימה
-                    MessageBox.Show("משתמש נוסף בהצלחה!");
-                }
-                catch (SqlException ex)
-                {
-                    MessageBox.Show("שגיאה במהלך הוספת המשתמש: " + ex.Message);
+                            default:
+                                MessageBox.Show("אנא בחר תפקיד.");
+                                return;
+                        }
+
+                        cmd.ExecuteNonQuery(); // Insert the user into the respective table
+                        MessageBox.Show("משתמש נוסף בהצלחה!");
+                    }
+                    catch (SqlException ex)
+                    {
+                        MessageBox.Show("שגיאה במהלך הוספת המשתמש: " + ex.Message);
+                    }
+                    finally
+                    {
+                        // Clear parameters to avoid issues if the method is called again
+                        cmd.Parameters.Clear();
+                    }
                 }
             }
         }
+
 
         private void buttonAsUser_Click(object sender, EventArgs e)
         {

@@ -61,6 +61,10 @@ namespace UniversityZusha.messageFuncions
             tab.Controls.Add(messagesTabControl);
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="tabOutbox"> of type TabPage</param>
         public void InitializeOutboxTab(TabPage tabOutbox)
         {
             dataGridViewOutbox = new DataGridView();

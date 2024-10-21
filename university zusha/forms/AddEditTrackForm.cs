@@ -34,7 +34,6 @@ namespace UniversityZusha.forms
             {
                 DataRow row = trackDetails.Rows[0];
                 textBoxTrackName.Text = row["TrackName"].ToString();
-                numericUpDownTotalCredits.Value = Convert.ToInt32(row["TotalCredits"]);
             }
         }
 
@@ -48,13 +47,20 @@ namespace UniversityZusha.forms
 
             if (trackID.HasValue)
             {
+                // if textBoxTrackName.Text deddnt change - dont update
+                if (textBoxTrackName.Text == DbFunctions.GetTrackNameByID(trackID.Value))
+                {
+                    this.DialogResult = DialogResult.OK;
+                    this.Close();
+                    return;
+                }
                 // עדכון מסלול קיים
-                DbFunctions.UpdateTrack(trackID.Value, textBoxTrackName.Text, (int)numericUpDownTotalCredits.Value);
+                DbFunctions.UpdateTrack(trackID.Value, textBoxTrackName.Text);
             }
             else
             {
                 // הוספת מסלול חדש
-                DbFunctions.InsertTrack(textBoxTrackName.Text, departmentID, (int)numericUpDownTotalCredits.Value);
+                DbFunctions.InsertTrack(textBoxTrackName.Text, departmentID);
             }
 
             this.DialogResult = DialogResult.OK;

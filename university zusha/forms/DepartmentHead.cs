@@ -26,6 +26,8 @@ namespace UniversityZusha.forms
         private DataGridView dataGridViewApprovedStudents;
         private DataGridView dataGridViewStudents;
         private DataGridView dataGridViewAssistantCourses;
+        private TabPage tabLecturers;
+        private TabPage tabTracksAndCourses;
 
         public DepartmentHead(int departmentHeadID, Login loginForm)
         {
@@ -40,7 +42,6 @@ namespace UniversityZusha.forms
         {
             if (!isLoggingOut)
             {
-                // המשתמש סוגר את הטופס ללא התנתקות - נסגור את האפליקציה
                 Application.Exit();
             }
             else
@@ -54,11 +55,11 @@ namespace UniversityZusha.forms
             TabControl tabControl = new TabControl();
             tabControl.Dock = DockStyle.Fill;
 
-            TabPage tabTracksAndCourses = new TabPage("מסלולים וקורסים");
+            this.tabTracksAndCourses = new TabPage("מסלולים וקורסים");
             InitializeTrackCourseTab(tabTracksAndCourses);
             tabControl.TabPages.Add(tabTracksAndCourses);
 
-            TabPage tabLecturers = new TabPage("מרצים");
+            this.tabLecturers = new TabPage("מרצים");
             InitializeLecturersTab(tabLecturers);
             tabControl.TabPages.Add(tabLecturers);
 
@@ -167,20 +168,19 @@ namespace UniversityZusha.forms
             }
         }
 
-
-        //Todo: onle courses with grade 80 and above should be shown
         private void LoadStudentCourses(int studentID)
         {
             using (SqlConnection con = new SqlConnection(connectionString))
             {
                 con.Open();
                 string query = @"
-                    SELECT c.CourseID, c.CourseName, 
-                    CASE WHEN sac.StudentID IS NOT NULL THEN 1 ELSE 0 END AS IsAssistantFor
-                    FROM StudentCourses sc
-                    INNER JOIN Courses c ON sc.CourseID = c.CourseID
-                    LEFT JOIN StudentAssistantCourses sac ON sc.StudentID = sac.StudentID AND sc.CourseID = sac.CourseID
-                    WHERE sc.StudentID = @StudentID";
+            SELECT c.CourseID, c.CourseName, 
+                   CASE WHEN sac.StudentID IS NOT NULL THEN 1 ELSE 0 END AS IsAssistantFor
+            FROM StudentCourses sc
+            INNER JOIN Courses c ON sc.CourseID = c.CourseID
+            LEFT JOIN StudentAssistantCourses sac ON sc.StudentID = sac.StudentID AND sc.CourseID = sac.CourseID
+            WHERE sc.StudentID = @StudentID
+              AND sc.Grade >= 80";  // Only show courses with a grade of 80 or above
 
                 using (SqlCommand cmd = new SqlCommand(query, con))
                 {
@@ -328,8 +328,6 @@ namespace UniversityZusha.forms
                 previousTabIndex = tabControl.SelectedIndex;
             }
         }
-
-        //Todo: Track credits 0 and when adding a course to a track, the track credits should be updated
         private void InitializeTrackCourseTab(TabPage tab)
         {
             // יצירת DataGridViews
@@ -960,8 +958,8 @@ namespace UniversityZusha.forms
 
                 int trackID = Convert.ToInt32(trackIDValue);
 
-                // המשך הקוד...
                 ApproveStudent(authID, trackID);
+                DbFunctions.UpdateStudentTotalCredits(authID, trackID);
                 LoadUnapprovedStudents();
                 LoadApprovedStudents();
             }
@@ -974,7 +972,6 @@ namespace UniversityZusha.forms
             }
         }
 
-        //Todo: add TotalCredits to Student by the track
         private void ApproveStudent(int authID, int trackID)
         {
             try
